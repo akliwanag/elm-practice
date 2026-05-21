@@ -1,0 +1,93 @@
+module Main exposing (main)
+
+import Browser
+import Html exposing (Html, div, text, p, input, br, option, select, button)
+import Html.Attributes exposing (value)
+import Html.Events exposing (onInput, onClick)
+
+type Msg
+    = MsgConvert
+    | MsgUpdateMode Mode
+    | MsgUpdateVal String
+
+type Mode
+    = ModeCtoF
+    | ModeFtoC
+
+type alias Model = { val : String, conv : Mode, display : String, answer: String }
+
+init : Model
+init = { val = "", conv = ModeCtoF, display = "Enter temperature", answer = "" }
+
+cToF : Float -> Float
+cToF val =
+    (val * (9/5)) + 32 
+
+fToC : Float -> Float
+fToC val =
+    (val - 32) * (5/9)
+    
+stringToMode : String -> Mode
+stringToMode val =
+    if val == "°C to °F" then
+        ModeCtoF
+    else
+        ModeFtoC
+    
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        MsgConvert ->
+            { model
+            | answer =
+            let
+                notSureFloat = String.toFloat model.val
+                symbol =
+                    if model.conv == ModeCtoF then
+                        " °F"
+                    else
+                        " °C" 
+            in
+            case notSureFloat of
+                Nothing ->
+                    "Please enter valid number"
+                Just sureFloat ->
+                    if model.conv == ModeCtoF then
+                        String.fromFloat (cToF sureFloat) ++ symbol
+                    else
+                        String.fromFloat (fToC sureFloat) ++ symbol
+            }
+        MsgUpdateMode val ->
+            { model
+            | conv = val
+            }
+        MsgUpdateVal newval ->
+            { model
+            | val = newval
+            , answer = ""
+            }
+        
+                
+view : Model -> Html Msg
+view model =
+    div []
+        [ p [] [ text model.display ] 
+        , input [ value model.val, onInput MsgUpdateVal ] []
+        , select [ onInput (\str -> MsgUpdateMode (stringToMode str)) ]
+            [ option [ value "°C to °F" ] [ text "°C to °F" ]
+            , option [ value "°F to °C" ] [ text "°F to °C" ]
+            ]
+        , br [] []
+        , button [ onClick MsgConvert ] [ text "Convert" ]
+        , br [] []
+        , p [] [ text model.answer]
+        ]
+
+
+main : Program () Model Msg
+main =
+    Browser.sandbox
+        { init = init
+        , update = update
+        , view = view
+        }
